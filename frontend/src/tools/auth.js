@@ -1,63 +1,125 @@
-const headers = {'Content-Type': 'application/json'}
-const API_URL = 'http://localhost:8000/'
 
-async function getApi(endpoint, method = 'GET', body = null) {
-  try {
+const API_URL = 'http://127.0.0.1:8000/api/';
+
+const getAccessToken = () => {
+    return localStorage.getItem('access_token');
+};
+
+const getRefreshToken = () => {
+    return localStorage.getItem('refresh_token');
+};
+
+const setTokens = (access, refresh) => {
+    localStorage.setItem('access_token', access);
+
+    if (refresh) {
+        localStorage.setItem('refresh_token', refresh);
+    }
+};
+
+const clearTokens = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+};
+
+const request = async (endpoint, options = {}) => {
+    const token = getAccessToken();
+
     const response = await fetch(`${API_URL}${endpoint}`, {
-        method: method,
-       headers,
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && {
+                'Authorization': `Bearer ${token}`
+            }),
+            ...options.headers
+        }
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({
+            error: 'Something went wrong'
+        }));
+
+        throw new Error(
+            error.detail ||
+            error.error ||
+            'API request failed'
+        );
+    }
+
+    return response.json();
+};
+
+const login = async (username, password) => {
+    const response = await fetch(`${API_URL}token/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            username,
+            password
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({
+            error: 'Login failed'
+        }));
+
+        throw new Error(
+            error.detail ||
+            error.error ||
+            'Login failed'
+        );
+    }
+
+    const data = await response.json();
+
+    setTokens(data.access, data.refresh);
+
+    return data;
+};
+
+const logout = () => {
+    clearTokens();
+};
+
+const get = (endpoint) => {
+    return request(endpoint, {
+        method: 'GET'
+    });
+};
+
+const post = (endpoint, body = null) => {
+    return request(endpoint, {
+        method: 'POST',
         body: body ? JSON.stringify(body) : null
     });
-    return await response.json();
-  }
-  catch (error) {
-    return console.error('Error during api call:', error);
-  }
-}
+};
 
-async function postApi(endpoint, method = 'POST', body = null) {
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: method,
-            headers,
-            body: body ? JSON.stringify(body) : null
-        });
-        return await response.json();
-    } catch (error) {
-        return console.error('Error during api call:', error);
-    }
-}
+const put = (endpoint, body = null) => {
+    return request(endpoint, {
+        method: 'PUT',
+        body: body ? JSON.stringify(body) : null
+    });
+};
 
-async function deleteApi(endpoint, method = 'DELETE', body = null) {
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: method,
-            headers,
-            body: body ? JSON.stringify(body) : null
-        });
-        return await response.json();
-    }
-    catch (error) {
-        return console.error('Error during api call:', error);
-    }
-}
+const deleteRequest = (endpoint) => {
+    return request(endpoint, {
+        method: 'DELETE'
+    });
+};
 
-async function putApi(endpoint, method = 'PUT', body = null) {
-    try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: method,
-            headers,
-            body: body ? JSON.stringify(body) : null
-        });
-        return await response.json();
-    }
-    catch (error) {
-        console.error('Error during api call:', error);
-    }
-}
+const auth = {
+    login,
+    logout,
+    get,
+    post,
+    put,
+    delete: deleteRequest
+};
 
+export { auth };
 
-
-
-
-export {getApi, postApi, deleteApi, putApi}
