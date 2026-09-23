@@ -3,6 +3,7 @@ from .models import Todo
 from django.contrib.auth import authenticate, login, logout
 
 from django.http import JsonResponse
+import json
 
 # Create your views here.
 # get todos
