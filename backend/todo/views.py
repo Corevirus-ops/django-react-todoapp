@@ -1,52 +1,109 @@
-from django.shortcuts import render
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+
 from .models import Todo
-from django.contrib.auth import authenticate, login, logout
+from .serializer import TodoSerializer, RegisterSerializer
 
-from django.http import JsonResponse
-import json
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
 
-# Create your views here.
-# get todos
-def todo_list(request):
-    todos = Todo.objects.filter(user=request.user)
-    return JsonResponse({'todos': list(todos.values('id', 'title', 'description', 'completed'))})
-#update todo
-def todo_detail(request, pk):
-    try:
-        todo = Todo.objects.get(pk=pk, user=request.user)
-    except Todo.DoesNotExist:
-        return JsonResponse({'error': 'Todo not found'}, status=404)
+    def get(self, request):
+        return Response({
+            'id': request.user.id,
+            'username': request.user.username,
+            'email': request.user.email
+        })
 
-    if request.method == 'GET':
-        return JsonResponse({'id': todo.id, 'title': todo.title, 'description': todo.description, 'completed': todo.completed})
-    elif request.method == 'PUT':
-        data = json.loads(request.body)
-        todo.title = data.get('title', todo.title)
-        todo.description = data.get('description', todo.description)
-        todo.completed = data.get('completed', todo.completed)
-        todo.save()
-        return JsonResponse({'id': todo.id, 'title': todo.title, 'description': todo.description, 'completed': todo.completed})
-    elif request.method == 'DELETE':
+class RegisterView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+
+            return Response({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+
+class TodoList(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        todos = Todo.objects.filter(user=request.user)
+        serializer = TodoSerializer(todos, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = TodoSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TodoDetail(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_todo(self, request, pk):
+        try:
+            return Todo.objects.get(pk=pk, user=request.user)
+        except Todo.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        todo = self.get_todo(request, pk)
+
+        if todo is None:
+            return Response(
+                {'error': 'Todo not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = TodoSerializer(todo)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        todo = self.get_todo(request, pk)
+
+        if todo is None:
+            return Response(
+                {'error': 'Todo not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = TodoSerializer(todo, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        todo = self.get_todo(request, pk)
+
+        if todo is None:
+            return Response(
+                {'error': 'Todo not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         todo.delete()
-        return JsonResponse({'result': 'Todo deleted'})
 
-def user_login(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        username = data.get('username')
-        password = data.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return JsonResponse({'user': user})
-        else:
-            return JsonResponse({'error': 'Invalid credentials'}, status=401)
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-def user_logout(request):
-    if request.method == 'DELETE':
-        logout(request)
-        return JsonResponse({'result': 'Logout successful'})
-    else:
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
