@@ -2,7 +2,6 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from .models import Todo
 
-
 class TodoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Todo
@@ -15,6 +14,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'password']
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                'An account with this email already exists.'
+            )
+
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(
