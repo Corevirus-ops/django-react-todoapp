@@ -41,20 +41,28 @@ export default function Login({setUser, setUseLoginPage}) {
             <h2>Login</h2>
 
             {error && <p>{error}</p>}
-
+            <label>
+                Username: 
             <input 
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
+                required
             />
+            </label>
 
+            <label>
+            Password: 
             <input 
                 type="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                required
             />
+            </label>
+
 
             <button type="button" onClick={() => setUseLoginPage(false)}>
                 Don't have an account?

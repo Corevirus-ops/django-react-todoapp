@@ -41,11 +41,13 @@ const request = async (endpoint, options = {}) => {
             error: 'Something went wrong'
         }));
 
-        throw new Error(
-            error.detail ||
-            error.error ||
-            'API request failed'
-        );
+       const message =
+    error.detail ||
+    error.error ||
+    Object.values(error).flat().join(' ') ||
+    'API request failed';
+
+throw new Error(message);
     }
 
     return response.json();
@@ -80,6 +82,21 @@ const login = async (username, password) => {
     setTokens(data.access, data.refresh);
 
     return data;
+};
+
+const register = async (username, email, password) => {
+    await request('register/', {
+        method: 'POST',
+        body: JSON.stringify({
+            username,
+            email,
+            password
+        })
+    });
+
+    await login(username, password);
+
+    return await get('me/');
 };
 
 const logout = () => {
@@ -118,7 +135,8 @@ const auth = {
     get,
     post,
     put,
-    delete: deleteRequest
+    delete: deleteRequest,
+    register
 };
 
 export { auth };

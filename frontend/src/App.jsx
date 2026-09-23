@@ -25,14 +25,21 @@ function App() {
         getUser()
     }, [])
 
-    useEffect(() => {
-        console.log(JSON.stringify(user))
-    }, [user])
+    const handleLogout = () => {
+        auth.logout()
+        setUser(null);
+    }
+
 
     return (
         <>
             {!user && <Auth setUser={setUser}/>}
-            {user && <h1>Welcome, {user.username}</h1>}
+            {user && (
+                <div>
+                    <h2>Welcome {user.username}</h2>
+                    <button onClick={handleLogout}>Logout</button>
+                </div>
+            )}
         </>
     )
 }
