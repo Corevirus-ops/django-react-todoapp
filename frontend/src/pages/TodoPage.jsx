@@ -130,58 +130,120 @@ export default function TodoPage({ handleLogout }) {
         }));
     };
 
+    const visibleTodos = todos
+        .map((todo, index) => ({ todo, index }))
+        .filter(({ todo }) => {
+            if (filter === "completed") return todo.completed;
+            if (filter === "incomplete") return !todo.completed;
+            return true;
+        });
+
     return (
-        <div>
-            <h1>Todo Page</h1>
-            <button onClick={handleLogout}>Logout</button>
-            <fieldset>
-                <legend>Filter Todos</legend>
-                <label>
-                    <input type="radio" name="filter" value="all" checked={filter === "all"} onChange={() => setFilter("all")} />
-                    All
-                </label>
-                <label>
-                    <input type="radio" name="filter" value="completed" checked={filter === "completed"} onChange={() => setFilter("completed")} />
-                    Completed
-                </label>
-                <label>
-                    <input type="radio" name="filter" value="incomplete" checked={filter === "incomplete"} onChange={() => setFilter("incomplete")} />
-                    Incomplete
-                </label>
-            </fieldset>
-            <form onSubmit={handleSubmit}>
-                <input type="text" name="title" placeholder="New todo" value={newTodo.title} onChange={handleChange} />
-                <input type="text" name="description" placeholder="Description" value={newTodo.description} onChange={handleChange} />
-                <button type="submit">Add</button>
-                {error && <p style={{ color: "red" }}>{error}</p>}
-            </form>
-            <ul>
-                {todos.filter(todo => {
-                    if (filter === "all") return true;
-                    if (filter === "completed") return todo.completed;
-                    if (filter === "incomplete") return !todo.completed;
-                    return true;
-                }).map((todo, index) => (
-                    <li key={`${todo.title} ${index}`}><div>
+        <main className="todo-app">
+            <header className="todo-header">
+                <div className="brand-mark" aria-hidden="true">✓</div>
+                <div className="header-copy">
+                    <p className="eyebrow">PERSONAL WORKSPACE</p>
+                    <h1>Make room for what matters.</h1>
+                </div>
+                <button className="logout-button" onClick={handleLogout}>Log out <span aria-hidden="true">↗</span></button>
+            </header>
+
+            <section className="todo-content" aria-label="Todo list">
+                <div className="section-heading">
+                    <div>
+                        <p className="eyebrow">YOUR LIST</p>
+                        <h2>Today at a glance</h2>
+                    </div>
+                    <p className="task-count">
+                        <strong>{todos.length}</strong> tasks <span aria-hidden="true">·</span>{" "}
+                        <strong>{todos.filter(todo => todo.completed).length}</strong> done
+                    </p>
+                </div>
+
+                <form className="todo-composer" onSubmit={handleSubmit}>
+                    <div className="compose-fields">
+                        <input
+                            className="task-title-input"
+                            type="text"
+                            name="title"
+                            placeholder="What needs doing?"
+                            aria-label="Task title"
+                            value={newTodo.title}
+                            onChange={handleChange}
+                        />
+                        <input
+                            className="task-description-input"
+                            type="text"
+                            name="description"
+                            placeholder="Add a note or details"
+                            aria-label="Task description"
+                            value={newTodo.description}
+                            onChange={handleChange}
+                        />
+                    </div>
+                    <button className="add-button" type="submit"><span aria-hidden="true">+</span> Add task</button>
+                    {error && <p className="form-error" role="alert">{error}</p>}
+                </form>
+
+                <div className="list-toolbar">
+                    <p className="list-label">TASKS <span>{visibleTodos.length.toString().padStart(2, "0")}</span></p>
+                    <fieldset className="todo-filters">
+                        <legend>Filter tasks</legend>
+                        <label>
+                            <input type="radio" name="filter" value="all" checked={filter === "all"} onChange={() => setFilter("all")} />
+                            <span>All</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="filter" value="incomplete" checked={filter === "incomplete"} onChange={() => setFilter("incomplete")} />
+                            <span>To do</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="filter" value="completed" checked={filter === "completed"} onChange={() => setFilter("completed")} />
+                            <span>Done</span>
+                        </label>
+                    </fieldset>
+                </div>
+
+                <ul className="todo-list">
+                    {visibleTodos.map(({ todo, index }) => (
+                    <li className={`todo-item${todo.completed ? " is-complete" : ""}`} key={todo.id ?? `${todo.title} ${index}`}>
                         {editToDo === index ? (
-                            <>
-                                <input type="text" name="title" placeholder="New todo" value={editTodoData.title} onChange={handleToDoDataChange} />
-                                <input type="text" name="description" placeholder="Description" value={editTodoData.description} onChange={handleToDoDataChange} />
-                                <button onClick={() => handleSaveEdit(index)}>Save</button>
-                                <button onClick={handleCancelEdit}>Cancel</button>
-                            </>
+                            <div className="edit-task">
+                                <input type="text" name="title" aria-label="Edit task title" value={editTodoData.title} onChange={handleToDoDataChange} />
+                                <input type="text" name="description" aria-label="Edit task description" value={editTodoData.description} onChange={handleToDoDataChange} />
+                                <div className="todo-actions">
+                                    <button className="text-button" onClick={() => handleSaveEdit(index)}>Save</button>
+                                    <button className="text-button muted-button" onClick={handleCancelEdit}>Cancel</button>
+                                </div>
+                            </div>
                         ) : (
                             <>
-                                <button onClick={() => handleEdit(index)}>Edit</button>
-                                <h2>{todo.title}</h2>
-                                <p>{todo.description}</p>
-                                <input type="checkbox" checked={todo.completed} onChange={() => handleToggleComplete(index)} />
-                                <button onClick={() => handleDelete(index)}>Delete</button>
+                                <label className="todo-check">
+                                    <input type="checkbox" checked={todo.completed} onChange={() => handleToggleComplete(index)} aria-label={`Mark ${todo.title} ${todo.completed ? "incomplete" : "complete"}`} />
+                                    <span aria-hidden="true"></span>
+                                </label>
+                                <div className="task-copy">
+                                    <h3>{todo.title}</h3>
+                                    {todo.description && <p>{todo.description}</p>}
+                                </div>
+                                <div className="todo-actions">
+                                    <button className="text-button" onClick={() => handleEdit(index)}>Edit</button>
+                                    <button className="text-button delete-button" onClick={() => handleDelete(index)}>Delete</button>
+                                </div>
                             </>
                         )}
-                        </div></li>
-                ))}
-            </ul>
-        </div>
+                    </li>
+                    ))}
+                    {visibleTodos.length === 0 && (
+                        <li className="empty-state">
+                            <span className="empty-mark" aria-hidden="true">✓</span>
+                            <h3>{todos.length === 0 ? "A clear start." : "Nothing in this view."}</h3>
+                            <p>{todos.length === 0 ? "Add a task above and give your day some shape." : "Try another filter to see your tasks."}</p>
+                        </li>
+                    )}
+                </ul>
+            </section>
+        </main>
     );
 }

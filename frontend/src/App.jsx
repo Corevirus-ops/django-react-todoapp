@@ -1,4 +1,5 @@
 import {useState, useEffect} from 'react';
+import './App.css';
 import Auth from './pages/Auth';
 import {auth} from './tools/auth';
 import TodoPage from './pages/TodoPage';
