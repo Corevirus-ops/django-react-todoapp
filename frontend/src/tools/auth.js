@@ -129,6 +129,40 @@ const deleteRequest = (endpoint) => {
     });
 };
 
+const refresh = async () => {
+    const refreshToken = getRefreshToken();
+
+    if (!refreshToken) {
+        throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${API_URL}token/refresh/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            refresh: refreshToken
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({
+            error: 'Failed to refresh token'
+        }));
+
+        throw new Error(
+            error.detail ||
+            error.error ||
+            'Failed to refresh token'
+        );
+    }
+
+    const data = await response.json();
+    setTokens(data.access, data.refresh);
+    return data;
+};
+
 const auth = {
     login,
     logout,
@@ -136,7 +170,8 @@ const auth = {
     post,
     put,
     delete: deleteRequest,
-    register
+    register,
+    refresh
 };
 
 export { auth };

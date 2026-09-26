@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
 import Auth from './pages/Auth';
 import {auth} from './tools/auth';
+import TodoPage from './pages/TodoPage';
 
 function App() {
     const [user, setUser] = useState(null)
@@ -12,9 +13,22 @@ function App() {
             return
         }
 
+        const refreshToken = localStorage.getItem('refresh_token');
+
+
         const getUser = async () => {
             try {
                 const user = await auth.get('me/')
+                if (!user && refreshToken) {
+                    try {
+                        await auth.refresh();
+                        const user = await auth.get('me/');
+                        setUser(user);
+                    } catch (error) {
+                        console.error('Failed to refresh token:', error);
+                        auth.logout();
+                    }
+                }
                 setUser(user)
             } catch (error) {
                 console.error('Failed to restore login:', error)
@@ -34,12 +48,7 @@ function App() {
     return (
         <>
             {!user && <Auth setUser={setUser}/>}
-            {user && (
-                <div>
-                    <h2>Welcome {user.username}</h2>
-                    <button onClick={handleLogout}>Logout</button>
-                </div>
-            )}
+            {user && <TodoPage handleLogout={handleLogout} />}
         </>
     )
 }
