@@ -49,7 +49,9 @@ const request = async (endpoint, options = {}) => {
 
 throw new Error(message);
     }
-
+if (response.status === 204) {
+    return { result: true };
+}
     return response.json();
 };
 
